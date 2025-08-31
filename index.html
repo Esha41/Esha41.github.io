@@ -430,31 +430,6 @@
             { name: 'contact.html', icon: 'fas fa-envelope-open-text', sectionId: 'contact-section' },
         ];
 
-        // Function to update active states for explorer files and editor tabs
-        function updateActiveStates(tabName) {
-            // Update explorer files
-            explorerFiles.forEach(button => {
-                if (button.dataset.tab === tabName) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-            });
-
-            // Update editor tabs
-            const editorTabButtons = editorTabsContainer.querySelectorAll('.editor-tab-button');
-            editorTabButtons.forEach(button => {
-                if (button.dataset.tab === tabName) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-            });
-
-            windowTitle.textContent = `Portfolio - ${tabName} - VS Code`;
-            activeTab = tabName; // Update global activeTab
-        }
-
         // Function to render editor tabs (UI elements, not content)
         function renderEditorTabs() {
             editorTabsContainer.innerHTML = ''; // Clear existing tabs
@@ -659,7 +634,7 @@
                     behavior: 'smooth'
                 });
             }
-            updateActiveStates(tabName);
+         //   updateActiveStates(tabName);
 
             // After switching tab, if on mobile, close sidebar
             if (window.innerWidth < 768) {
@@ -753,7 +728,7 @@
                 if (entry.isIntersecting) {
                     const sectionTabName = entry.target.dataset.tabName;
                     if (sectionTabName && activeTab !== sectionTabName) {
-                        updateActiveStates(sectionTabName);
+                       // updateActiveStates(sectionTabName);
                     }
                 }
             });
@@ -767,7 +742,9 @@
             setInitialSidebarState(); // Set sidebar state on load
             renderEditorTabs(); // Render initial tabs (UI)
             populateAllSections(); // Populate content for all sections
-            updateActiveStates('home.js'); // Set initial active tab and highlight
+         
+         
+         //   updateActiveStates('home.js'); // Set initial active tab and highlight
 
             // Now that sections are populated, get them and observe
             sections = document.querySelectorAll('.portfolio-section');
