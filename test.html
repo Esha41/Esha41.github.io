@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Portfolio - VS Code Style</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Google Fonts - Inter and JetBrains Mono for VS Code feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom CSS to override/enhance Tailwind for the VS Code look */
+        html, body {
+            height: 100%; /* Make sure html and body take full viewport height */
+            margin: 0;
+            overflow: hidden; /* Prevent native browser scrollbars on html/body */
+            font-family: 'Inter', sans-serif;
+            background-color: #1e1e1e; /* Dark background */
+            color: #ffffff;
+        }
+        #root { /* A common practice to have a root div to manage the app */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar for better aesthetics */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #252526; /* VS Code scrollbar track color */
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #5a5a5a; /* VS Code scrollbar thumb color */
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #7a7a7a; /* VS Code scrollbar thumb hover color */
+        }
+
+        /* Sidebar transitions and states */
+        #sidebar {
+            transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+            flex-shrink: 0; /* Prevents sidebar from shrinking initially */
+            z-index: 20; /* Higher z-index for mobile overlay */
+        }
+
+        /* Initial state for sidebar */
+        #sidebar.sidebar-closed {
+            width: 0;
+            overflow: hidden;
+            transform: translateX(-100%); /* Visually slide out on mobile */
+        }
+        #sidebar.sidebar-open-desktop {
+            width: 16rem; /* Equivalent to w-64 */
+            overflow: hidden; /* Can still have inner scrolling */
+        }
+
+        /* Mobile specific styling for sidebar when open */
+        @media (max-width: 767px) { /* On mobile, sidebar should overlay */
+            #sidebar.sidebar-open-mobile {
+                width: 16rem; /* w-64 on mobile */
+                position: absolute; /* Overlay content */
+                height: 100%; /* Take full height of parent flex item */
+                top: 0;
+                left: 3.5rem; /* Adjusted: positioned next to the activity bar (w-14 = 3.5rem) */
+                transform: translateX(0); /* Slide into view */
+                overflow: hidden; /* Can still have inner scrolling */
+            }
+            #sidebar.sidebar-closed { /* Ensure it slides out completely on mobile */
+                transform: translateX(-100%);
+            }
+        }
+
+
+        /* Button base styles for better hover effects */
+        .vs-icon-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            color: #929292;
+            transition: color 0.2s, background-color 0.2s, border-left-color 0.2s;
+            border-left: 2px solid transparent;
+            width: 100%; /* To make sure border-left is visible */
+        }
+        .vs-icon-button:hover {
+            color: #ffffff;
+        }
+        .vs-icon-button.active {
+            color: #ffffff;
+            border-left-color: #007acc; /* VS Code blue */
+        }
+        .vs-icon-button i {
+            font-size: 1.25rem; /* text-xl */
+        }
+        .vs-icon-button span {
+            font-size: 0.75rem; /* text-xs */
+            margin-top: 0.25rem; /* mt-1 */
+        }
+
+
+        .explorer-file-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 0.375rem 1rem; /* py-1.5 px-4 */
+            font-size: 0.875rem; /* text-sm */
+            color: #cccccc;
+            background-color: transparent;
+            border: none;
+            text-align: left;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .explorer-file-button:not(.active):hover {
+            background-color: #2a2d2e; /* Slightly lighter gray for hover */
+            color: #cccccc;
+        }
+        .explorer-file-button.active {
+            background-color: rgba(0, 122, 204, 0.18); /* Blue with transparency */
+            color: #ffffff;
+        }
+        .explorer-file-button .icon {
+            margin-right: 0.5rem; /* mr-2 */
+            color: #858585; /* Gray icon color */
+        }
+        .explorer-file-button.active .icon {
+            color: #007acc; /* Blue icon color when active */
+        }
+        .explorer-category-title {
+            color: #929292;
+            padding: 0.5rem 1rem; /* px-4 py-2 */
+            font-size: 0.75rem; /* text-xs */
+            text-transform: uppercase;
+        }
+
+        .editor-tab-button {
+            display: inline-flex; /* Use inline-flex for horizontal tabs */
+            align-items: center;
+            padding: 0.5rem 1rem; /* px-4 py-2 */
+            border-right: 1px solid #3d3d3d; /* Border between tabs */
+            background-color: #2d2d2d; /* Default tab background */
+            color: #929292;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .editor-tab-button:hover:not(.active) {
+            background-color: #3e3e3e; /* Hover effect */
+        }
+        .editor-tab-button.active {
+            background-color: #1e1e1e; /* Active tab background */
+            color: #ffffff; /* Active tab text color */
+        }
+        .editor-tab-button .icon {
+            margin-right: 0.5rem; /* mr-2 */
+            font-size: 0.75rem; /* text-xs */
+        }
+
+        /* --- Scroll Snap / Full Section Styling --- */
+        #sections-wrapper {
+            scroll-snap-type: y mandatory; /* Enable vertical scroll snapping */
+            overflow-y: scroll; /* Make the wrapper scrollable vertically */
+            -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
+            height: 100%; /* Ensure it takes full available height */
+            scroll-behavior: smooth; /* Smooth scrolling for programmatic scrolls */
+        }
+
+        .portfolio-section {
+            scroll-snap-align: start; /* Snap each section to the start of the scroll container */
+            min-height: calc(100vh - 3.5rem - 2.5rem); /* Full viewport height minus top bar (py-1.5 = 24px + 6px padding on either side = 30px = 2.5rem) and status bar (py-1.5 = 2.5rem) */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Center content vertically within the section */
+            align-items: flex-start; /* Center content horizontally */
+            width: 100%; /* Take full width */
+            box-sizing: border-box; /* Include padding in width/height */
+            padding-top: 1rem;
+            padding-left: 5rem; /* Adjust padding for sections */
+            padding-right: 5rem; 
+        }
+        /* Adjust min-height for different screen sizes, if needed (can be refined based on actual content and desired feel) */
+        @media (min-width: 768px) {
+             .portfolio-section {
+                min-height: calc(100vh - 2.5rem - 2.5rem); /* Adjust for desktop top/status bar heights if different */
+             }
+        }
+
+
+        /* Ensure content wraps and allows horizontal scrolling if needed within editor-content */
+        #editor-content p, #editor-content ul, #editor-content li, #editor-content h1, #editor-content h2, #editor-content h3 {
+            word-break: break-word; /* Break long words */
+            overflow-wrap: break-word; /* Standard property */
+        }
+        #editor-content img {
+            max-width: 100%; /* Ensure images don't overflow */
+            height: auto;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen bg-gray-900 text-white">
+    <div id="root" class="flex flex-col flex-1">
+        <!-- VS Code Top Bar -->
+   
+
+        <!-- Main Content Area -->
+        <div class="flex flex-1 overflow-hidden relative">
+            <!-- VS Code Activity Bar (Leftmost) -->
+            <div class="w-14 bg-gray-800 flex flex-col items-center py-4 space-y-4 shadow-md z-30">
+                <button id="explorer-toggle" class="vs-icon-button" title="Explorer">
+                    <i class="fas fa-code text-xl"></i>
+                    <span class="text-xs mt-1">Explorer</span>
+                </button>
+              
+            </div>
+
+            <!-- VS Code Sidebar (Explorer) -->
+            <div id="sidebar" class="bg-gray-800 border-r border-gray-700 flex-shrink-0 flex flex-col">
+             
+                <div class="flex-1 overflow-y-auto custom-scroll">
+                    <div class="mb-2">
+                        <h4 class="explorer-category-title">Easha's Portfolio</h4>
+                        <button class="explorer-file-button active" data-tab="home.js" data-section="home-section">
+                            <i class="fab fa-react icon"></i>
+                            <span class="truncate">home.js</span>
+                        </button>
+                        <button class="explorer-file-button" data-tab="skills.json" data-section="skills-section">
+                            <i class="fas fa-cogs icon"></i>
+                            <span class="truncate">skills.json</span>
+                        </button>
+                        <button class="explorer-file-button" data-tab="projects.md" data-section="projects-section">
+                            <i class="fas fa-project-diagram icon"></i>
+                            <span class="truncate">projects.md</span>
+                        </button>
+                        <button class="explorer-file-button" data-tab="experience.js" data-section="experience-section">
+                            <i class="fas fa-briefcase icon"></i>
+                            <span class="truncate">experience.js</span>
+                        </button>
+                        <button class="explorer-file-button" data-tab="education.txt" data-section="education-section">
+                            <i class="fas fa-graduation-cap icon"></i>
+                            <span class="truncate">education.txt</span>
+                        </button>
+                        <button class="explorer-file-button" data-tab="contact.html" data-section="contact-section">
+                            <i class="fas fa-envelope-open-text icon"></i>
+                            <span class="truncate">contact.html</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Overlay for Sidebar (when sidebar is open on mobile) -->
+            <div id="mobile-overlay" class="hidden fixed inset-0 bg-black opacity-50 z-10"></div>
+
+            <!-- VS Code Editor Area -->
+            <div class="flex flex-col flex-1 bg-gray-900 overflow-hidden">
+                <!-- Editor Tabs -->
+                <div id="editor-tabs" class="flex bg-gray-700 border-b border-gray-600 text-sm overflow-x-auto">
+                    <!-- Tabs will be generated by JavaScript -->
+                </div>
+
+                <!-- Editor Content (now contains all sections as scrollable) -->
+                <div id="sections-wrapper" class="flex-1 custom-scroll">
+                    <!-- Sections will be dynamically populated here by JavaScript -->
+                    <div id="home-section" data-tab-name="home.js" class="portfolio-section"></div>
+                    <div id="skills-section" data-tab-name="skills.json" class="portfolio-section"></div>
+                    <div id="projects-section" data-tab-name="projects.md" class="portfolio-section"></div>
+                    <div id="experience-section" data-tab-name="experience.js" class="portfolio-section"></div>
+                    <div id="education-section" data-tab-name="education.txt" class="portfolio-section"></div>
+                    <div id="contact-section" data-tab-name="contact.html" class="portfolio-section"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VS Code Status Bar -->
+        <div class="flex items-center bg-blue-700 text-white text-xs px-4 py-1.5 shadow-inner z-30 rounded-b-md">
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <span class="flex items-center"><i class="fas fa-code-branch mr-1"></i> main</span>
+                <span class="flex items-center hidden sm:flex"><i class="fas fa-exclamation-triangle mr-1"></i> 0 <i class="fas fa-info-circle ml-2 mr-1"></i> 0</span>
+            </div>
+            <div class="flex-grow"></div>
+            <div class="flex items-center space-x-2 sm:space-x-4">
+                <span class="hidden md:block">Ln 1, Col 1</span>
+                <span class="hidden lg:block">Spaces: 2</span>
+                <span class="hidden lg:block">UTF-8</span>
+                <span class="hidden md:block">CRLF</span>
+                <span class="hidden md:block">JavaScript React</span>
+                <span class="flex items-center"><i class="fas fa-wifi mr-1"></i> Go Live</span>
+                <span class="flex items-center hidden sm:flex"><i class="fas fa-bell"></i></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dummy resume data - REPLACE THIS WITH YOUR ACTUAL RESUME INFORMATION
+        const resumeData = {
+            name: "Easha Anjum",
+            title: "Senior Full Stack .NET Developer",
+            profileImage: "./Image/EashaPicture.jpeg",
+            about: `I am a Senior Full-Stack .NET Developer with 4+ years of experience in architecting, developing, and deploying scalable web applications, proficient across the entire stack from responsive JavaScript/Angular UIs to robust C#/.NET Core RESTful APIs. Proven ability to deliver measurable results, including a 20% improvement in application performance or enhanced user experience and a 15% reduction in production bugs by implementing rigorous testing strategies. A proactive problem-solver dedicated to writing clean, efficient code and mentoring junior team members. 
+            </br> Let's team up and build your next .Net Success story – I'm ready to help your organization crush its goals and even go beyond what you expect!`,
+            skills: {
+                "Programming Languages": ["C#", "JavaScript", "TypeScript", "HTML5", "CSS"],
+                "Frameworks & Libraries": [".Net Framework", ".Net Core 3-8", "MVC", "Angular 8+", "Entity Framework", "Dapper", "ADO.NET"],
+                "Database Technologies": ["MS SQL", "MongoDB", "PostgreSQL", "MySQL", "Firebase", "Redis"],
+                "Cloud Services": ["Microsoft Azure", "AWS", "Azure DevOps", "Azure Function Apps", "Azure Blob Storage", "Key Vaults", "Web Jobs", "AWS S3"],
+                "Messaging Systems": ["Kafka", "RabbitMQ", "Azure Service Bus"],
+                "Tools & Others": ["Git", "GitHub", "Jira", "VS Code", "Postman", "Webpack", "Babel", "OpenTok Library", "SignalR", "Nitro Pro", "Luxand", "Google OCR", "Parsers", "Active Directory", "Api proxies", "Reflection"]
+            },
+            projects: [
+                {
+                    name: "Signet Jewelers, E-Commerce Cloud Infrastructure (US-Based)",
+                    description: "I contributed to the Signet Jewelers E-Commerce Cloud Infrastructure, supporting high-traffic platforms like Kay Jewelers and Zales. I developed and deployed scalable Azure infrastructure using services like Function Apps, Blob Storage, Service Bus, and Key Vault, ensuring system reliability during peak holiday sales. My work also included optimizing performance, reducing critical API errors by 40%, improving response times by 25%, and cutting Azure SQL costs by 30% through query optimization. Additionally, I designed a high-performance solution for bulk document uploads to AWS S3, ensuring efficiency and data integrity.",
+                    technologies: [".NET 8", "Azure deployments", "Azure function apps", "AWS S3 bucket", "Azure Blob Storage", "Key Vaults", "Function Apps", "Web Jobs", "Service Bus"],
+                    link: "https://www.signetjewelers.com/our-home/default.aspx",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=Signet+Jewelers"
+                },
+                {
+                    name: "IHorizons, WOQODE - Qatar-Based Project",
+                    description: "Worked on the admin portal for WOQOD operations to track Qatar fuel purchases, payment transactions, and revenue trends across stations. Developed and integrated backend APIs and workflows for seamless e-tag registration, payment processing, and invoice management for both individual and corporate clients. Implemented granular access controls and conditional policies in Azure AD to secure admin functions, and integrated Azure AD B2C to enable corporate client onboarding, self-service password reset, and multi-factor authentication (MFA), enhancing overall security and user experience.",
+                    technologies: [".NET 6", "Azure AD", "Azure AD B2C", "ADO.NET", "stored procedures", "Web APIs", "3-layered architecture"],
+                    link: "https://www.woqod.com/website/en",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=IHorizons+Woqode"
+                },
+                {
+                    name: "Rasterex - Document Visualization Platform (Norway)",
+                    description: "Contributed to the Rasterex Document Visualization Platform for engineering and construction industries by resolving critical software defects, including annotation persistence issues, scaling inaccuracies, and snap point errors within the Foxit SDK integration. Integrated advanced features for annotations, digital markups, and document manipulation, enhancing platform capabilities. Additionally, optimized performance by refactoring inefficient modules and improving rendering logic, achieving a 30% increase in document load speed and delivering a smoother user experience.",
+                    technologies: [".NET 5.0", "Basic Authentication", "Active Directory", "Api proxies"],
+                    link: "https://www.rasterex.com/",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=Rasterex"
+                },
+                {
+                    name: "Agent Portal - Video Conferencing System (Greece-Based)",
+                    description: "Developed a real-time video conferencing system for the Agent Portal using OpenTok (Vonage Video API) to deliver high-quality, low-latency video interactions, enabling seamless remote collaboration for client-facing teams. Enhanced platform functionality by integrating ASP.NET Core SignalR for instant messaging, presence tracking, and real-time notifications. Additionally, refactored and optimized the legacy codebase, improving performance, maintainability, and reducing bug reports by 25%.",
+                    technologies: [".NET 7", "OpenTok Library", "SignalR"],
+                    link: "https://intelli-corp.com/digital-onboarding/",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=Agent+Portal"
+                },
+                {
+                    name: "DMS - Document Management System (Greece-Based)",
+                    description: "Developed a secure Document Management System (DMS) with role-based access control integrated with Active Directory authentication, ensuring compliance with organizational security policies. Designed and implemented API proxies to manage client-server communication efficiently and architected the system to handle big data solutions, including document analytics and metadata management.",
+                    technologies: [".NET Framework", "Nitro Pro", "factory pattern", "Luxand", "Google OCR", "Parsers"],
+                    link: "https://intelli-corp.com/web-document-management-system/",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=DMS"
+                },
+                {
+                    name: "PDF Software – WPF Application",
+                    description: "Designed and developed a full-featured WPF-based PDF desktop application from scratch, utilizing libraries like iText, MigraDoc, and PDFium for PDF creation, editing, manipulation, and rendering. Optimized performance by implementing page caching and reducing reflection operations, resulting in a 40% faster rendering time for large documents.",
+                    technologies: [".NET Framework", "Nitro Pro", "factory pattern", "Luxand", "Google OCR", "Parsers"],
+                    link: "",
+                    image: "https://placehold.co/600x400/2a2a4a/e0e0e0?text=PDF Software"
+                }
+            ],
+            experience: [
+                {
+                    title: ".NET Full Stack Developer",
+                    company: "Intellicore Tech",
+                    years: "Feb '24 - Present | Pakistan",
+                    description: `🚀 Led the end-to-end development and deployment of scalable cloud applications on Microsoft Azure, utilizing Azure services, while automating CI/CD pipelines.<br>  <br>
+☁️ Designed and implemented a high-performance file upload system to AWS S3, improving transfer efficiency by 40% ensuring data integrity.<br>  <br>
+🛠️ Solved complex PDF integration challenges and bug fixes using the Foxit SDK, and revamping legacy Angular modules, resulting in a 30% improvement in application speed and significantly enhanced user experience.<br> <br> 
+📄 Designed and developed a full-featured desktop PDF application from the scratch, leveraging multiple libraries (iText, MigraDoc, PDFium) for tasks including PDF creation, manipulation, editing, and rendering.<br><br>
+🔍 Participated in client meetings with international stakeholders to gather requirements and present technical solutions.<br><br>`
+                },
+                {
+                    title: "Software Engineer",
+                    company: "Devsinc",
+                    years: "Apr '23 - Dec '23 | Lahore, Pakistan",
+                    description: `🔧 Refactored and optimized legacy codebase, improving application performance, maintainability, and reducing bug reports by 25%.<br><br>
+🔐 Architected and implemented a secure, scalable authentication and authorization system for an admin portal using Azure AD and Azure AD B2C, centralizing identity management for thousands of users and improving security posture.<br><br>
+📬 Implemented asynchronous, decoupled communication between services using RabbitMQ, ensuring reliability and high performance for high-volume transaction processing.<br><br>
+🧐 Conducted comprehensive code reviews, focusing on optimization, adherence to best practices, and improving code maintainability through regular refactoring.<br><br>
+🤝 Led projects from inception to completion, effectively delegating tasks, providing constructive feedback, and mentoring junior developers to enhance team performance. <br><br>`
+                },
+                 {
+                    title: "Associate Software Engineer",
+                    company: "HazelSoft",
+                    years: "Jun '21 - Mar '23 | Lahore, Pakistan",
+                    description: `💡 Architected and developed a secure, end-to-end digital onboarding solution that streamlined customer identity verification, reducing manual processing time by an estimated 40%.<br><br>
+🔗 Integrated multiple third-party APIs and libraries including Luxand Face Recognition for biometric validation, Google Cloud Vision OCR for automated data extraction from identity documents, and Nitro Pro for legally binding digital signatures.<br><br>
+📝 Developed custom parsers to accurately recognize and process data from various international identity documents, enhancing system accuracy and reliability.<br><br>
+🎥 Designed and implemented a real-time video conferencing feature using the OpenTok API, enabling seamless and secure communication between agents and customers.<br><br>`
+                }
+            ],
+            education: [
+                {
+                    degree: "Bachelors in Computer Science",
+                    institution: "GCU (Lahore, Pakistan)",
+                    years: "2019 - 2023 | GPA: 3.2/4",
+                    description: ""
+                },
+                {
+                    degree: "High School (Pre-Engineering)",
+                    institution: "Punjab Group Of Colleges (Lahore, Pakistan)",
+                    years: "2016 - 2018 | Scored : 872/1100",
+                    description: ""
+                }
+                
+            ],
+            contact: {
+                email: "eshamir41@gmail.com",
+                linkedin: "https://www.linkedin.com/in/easha-anjum-0052a51b1/",
+                github: "https://github.com/Esha41",
+                phone: "+92 318 4133283"
+            },
+        };
+
+        let activeTab = 'home.js'; // Initial active tab
+        const windowTitle = document.getElementById('window-title');
+        const explorerFiles = document.querySelectorAll('.explorer-file-button');
+        const editorTabsContainer = document.getElementById('editor-tabs');
+        const sidebar = document.getElementById('sidebar');
+        const explorerToggle = document.getElementById('explorer-toggle');
+        const mobileOverlay = document.getElementById('mobile-overlay');
+        const sectionsWrapper = document.getElementById('sections-wrapper'); // The scrollable container for sections
+
+        const tabsData = [
+            { name: 'home.js', icon: 'fab fa-react', sectionId: 'home-section' },
+            { name: 'skills.json', icon: 'fas fa-cogs', sectionId: 'skills-section' },
+            { name: 'projects.md', icon: 'fas fa-project-diagram', sectionId: 'projects-section' },
+            { name: 'experience.js', icon: 'fas fa-briefcase', sectionId: 'experience-section' },
+            { name: 'education.txt', icon: 'fas fa-graduation-cap', sectionId: 'education-section' },
+            { name: 'contact.html', icon: 'fas fa-envelope-open-text', sectionId: 'contact-section' },
+        ];
+
+        // Function to update active states for explorer files and editor tabs
+        function updateActiveStates(tabName) {
+            // Update explorer files
+            explorerFiles.forEach(button => {
+                if (button.dataset.tab === tabName) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+
+            // Update editor tabs
+            const editorTabButtons = editorTabsContainer.querySelectorAll('.editor-tab-button');
+            editorTabButtons.forEach(button => {
+                if (button.dataset.tab === tabName) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+
+            windowTitle.textContent = `Portfolio - ${tabName} - VS Code`;
+            activeTab = tabName; // Update global activeTab
+        }
+
+        // Function to render editor tabs (UI elements, not content)
+        function renderEditorTabs() {
+            editorTabsContainer.innerHTML = ''; // Clear existing tabs
+            tabsData.forEach(tab => {
+                const button = document.createElement('button');
+                button.className = `editor-tab-button ${activeTab === tab.name ? 'active' : ''}`;
+                button.setAttribute('data-tab', tab.name);
+                button.setAttribute('data-section-id', tab.sectionId);
+                button.innerHTML = `
+                    <i class="${tab.icon} icon"></i>
+                    ${tab.name}
+                `;
+                button.onclick = () => switchTab(tab.name, tab.sectionId);
+                editorTabsContainer.appendChild(button);
+            });
+        }
+
+        // Function to populate content for a specific section
+        function populateSectionContent(sectionId) {
+            const sectionElement = document.getElementById(sectionId);
+            if (!sectionElement) return; // Exit if element not found
+
+            let contentHTML = '';
+            // Determine content based on sectionId
+            switch (sectionId) {
+                case 'home-section':    
+                    contentHTML = `
+                         <div class="flex flex-col sm:flex-row items-center sm:items-start p-4 sm:p-6 text-gray-200 font-mono w-full gap-6">
+                           
+                            <div class="flex-1 space-y-4">
+                            <h1 class="text-5xl sm:text-6xl font-bold text-blue-400">${resumeData.name}</h1>
+                            <h2 class="text-lg sm:text-xl text-gray-400">${resumeData.title}</h2>
+                            <p class="whitespace-pre-line leading-relaxed text-sm text-justify">${resumeData.about}</p>
+                            <div class="mt-4 sm:mt-6 flex flex-wrap gap-3 sm:gap-4">
+                                ${resumeData.contact.linkedin ? `
+                                    <a href="${resumeData.contact.linkedin}" target="_blank" rel="noopener noreferrer" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md transition-colors duration-200 flex items-center text-xs sm:text-sm">
+                                        <i class="fab fa-linkedin mr-1 sm:mr-2"></i> LinkedIn
+                                    </a>` : ''}
+                                ${resumeData.contact.github ? `
+                                    <a href="${resumeData.contact.github}" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md transition-colors duration-200 flex items-center text-xs sm:text-sm">
+                                        <i class="fab fa-github mr-1 sm:mr-2"></i> GitHub
+                                    </a>` : ''}
+                                ${resumeData.contact.email ? `
+                                    <a href="mailto:${resumeData.contact.email}" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md transition-colors duration-200 flex items-center text-xs sm:text-sm">
+                                        <i class="fas fa-envelope mr-1 sm:mr-2"></i> Email
+                                    </a>` : ''}
+                            </div>
+                            </div>
+
+                            
+                            <div class="flex-shrink-0 ">
+                                <img 
+                                    src="${resumeData.profileImage}" 
+                                    alt="${resumeData.name}" 
+                                    class="w-55 h-80 sm:w-63 sm:h-82 rounded-lg shadow-lg mt-4"
+                                />
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'skills-section':
+                    contentHTML = `
+                        <div class="p-4 sm:p-6 text-gray-200 font-mono w-full">
+                            <h2 class="text-xl sm:text-2xl font-bold text-green-400 mb-4">Skills</h2>
+                            ${Object.entries(resumeData.skills).map(([category, skills]) => `
+                                <div class="mb-4">
+                                    <h3 class="text-base sm:text-lg font-semibold text-gray-300 capitalize mb-2">${category.replace('_', ' ')}:</h3>
+                                    <ul class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs sm:text-sm">
+                                        ${skills.map(skill => `
+                                            <li class="bg-gray-700/50 px-3 py-1 rounded-md flex items-center">
+                                                <i class="fas fa-check-circle text-green-500 text-xs mr-2"></i> ${skill}
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+                case 'projects-section':
+                    contentHTML = `
+                        <div class="p-4 sm:p-6 text-gray-200 font-mono w-full">
+                            <h2 class="text-xl sm:text-2xl font-bold text-yellow-400 mb-6">Projects</h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                                ${resumeData.projects.map(project => `
+                                    <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700">
+                                        <img src="${project.image}" alt="${project.name}" class="w-full h-32 sm:h-48 object-cover object-center" onerror="this.onerror=null;this.src='https://placehold.co/600x400/363636/ffffff?text=Project+Image';" />
+                                        <div class="p-3 sm:p-4">
+                                            <h3 class="text-base sm:text-xl font-bold text-blue-400 mb-2">${project.name}</h3>
+                                            <p class="text-xs sm:text-sm text-gray-300 mb-3 leading-relaxed text-justify">${project.description}</p>
+                                            <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
+                                                ${project.technologies.map(tech => `
+                                                    <span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded-full">${tech}</span>
+                                                `).join('')}
+                                            </div>
+                                            ${project.link ? `
+                                                <a href="${project.link}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-blue-400 hover:text-blue-500 text-xs sm:text-sm">
+                                                    <i class="fas fa-external-link-alt mr-1"></i> View Project
+                                                </a>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'experience-section':
+                    contentHTML = `
+                        <div class="p-4 sm:p-6 text-gray-200 font-mono w-full">
+                            <h2 class="text-xl sm:text-2xl font-bold text-purple-400 mb-6">Experience</h2>
+                            <div class="space-y-4 sm:space-y-6">
+                                ${resumeData.experience.map(job => `
+                                    <div class="bg-gray-800 rounded-lg p-4 sm:p-5 shadow-lg border border-gray-700">
+                                        <h3 class="text-lg sm:text-xl font-bold text-blue-400">${job.title}</h3>
+                                        <p class="text-sm sm:text-md text-gray-300 mb-1">${job.company} <span class="text-xs sm:text-sm text-gray-500">(${job.years})</span></p>
+                                      <ul class="list-none text-xs sm:text-sm text-gray-300 leading-relaxed mt-2">
+    ${job.description
+        .split('  ')                           // split by double spaces
+        .map(point => point.trim())            // clean extra spaces
+        .filter(point => point.length > 0)     // skip empty lines
+        .map(point => `<li>${point}</li>`)     // render as list
+        .join('')}
+</ul>
+
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'education-section':
+                    contentHTML = `
+                        <div class="p-4 sm:p-6 text-gray-200 space-y-4 font-mono w-full">
+                            <h2 class="text-xl sm:text-2xl font-bold text-teal-400 mb-6">Education</h2>
+                            <div class="space-y-4 sm:space-y-6">
+                                ${resumeData.education.map(edu => `
+                                    <div class="bg-gray-800 rounded-lg p-4 sm:p-5 shadow-lg border border-gray-700">
+                                        <h3 class="text-lg sm:text-xl font-bold text-blue-400">${edu.degree}</h3>
+                                        <p class="text-sm sm:text-md text-gray-300 mb-1">${edu.institution} <span class="text-xs sm:text-sm text-gray-500">(${edu.years})</span></p>
+                                        <p class="text-xs sm:text-sm text-gray-400 mt-2">${edu.description}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+              case 'contact-section':
+    contentHTML = `
+        <div class="p-4 sm:p-6 text-gray-200 font-mono w-full">
+            <h2 class="text-xl sm:text-2xl font-bold text-pink-400 mb-6">Contact Me</h2>
+            <div class="space-y-4 mb-8">
+                ${resumeData.contact.email ? `
+                    <p class="flex items-center text-sm sm:text-lg">
+                        <i class="fas fa-envelope mr-2 sm:mr-3 text-red-400"></i>
+                        <span class="text-gray-300">Email:</span> 
+                        <a href="mailto:${resumeData.contact.email}" class="ml-1 sm:ml-2 text-blue-400 hover:underline">${resumeData.contact.email}</a>
+                    </p>` : ''}
+                ${resumeData.contact.phone ? `
+                    <p class="flex items-center text-sm sm:text-lg">
+                        <i class="fas fa-phone mr-2 sm:mr-3 text-green-400"></i>
+                        <span class="text-gray-300">Phone:</span> 
+                        <a href="tel:${resumeData.contact.phone}" class="ml-1 sm:ml-2 text-blue-400 hover:underline">${resumeData.contact.phone}</a>
+                    </p>` : ''}
+            </div>
+
+            <p class="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                I am open to <span class="text-green-400 font-semibold">remote</span>, 
+                <span class="text-yellow-400 font-semibold">relocate</span>, and 
+                <span class="text-blue-400 font-semibold">on-site</span> opportunities. 
+                Feel free to reach out via <span class="text-red-400">email</span> or 
+                <span class="text-green-400">phone</span> for any inquiries or collaborations.
+            </p>
+        </div>
+    `;
+
+                    break;
+                default:
+                    contentHTML = `
+                        <div class="p-4 sm:p-6 text-gray-400 font-mono w-full">
+                            <p>Welcome to my portfolio! Select a file from the explorer.</p>
+                        </div>
+                    `;
+                    break;
+            }
+            sectionElement.innerHTML = contentHTML; // Set the inner HTML of the specific section
+        }
+
+        // Function to populate all sections initially
+        function populateAllSections() {
+            tabsData.forEach(tab => {
+                populateSectionContent(tab.sectionId);
+            });
+        }
+
+
+        // Function to handle tab switching (now scrolls to section)
+        function switchTab(tabName, sectionId) {
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                sectionsWrapper.scrollTo({
+                    top: targetSection.offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+            updateActiveStates(tabName);
+
+            // After switching tab, if on mobile, close sidebar
+            if (window.innerWidth < 768) {
+                closeSidebar();
+            }
+        }
+
+        // Event listener for explorer files
+        explorerFiles.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                const sectionId = button.dataset.section; // Get section ID from data attribute
+                switchTab(tabName, sectionId);
+            });
+        });
+
+        // Helper functions for sidebar state management
+        function openSidebar() {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open-mobile');
+                mobileOverlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevent body scroll when overlay is active
+            } else {
+                sidebar.classList.remove('sidebar-open-mobile'); // Remove mobile class if mistakenly applied
+                sidebar.classList.remove('sidebar-closed');
+                sidebar.classList.add('sidebar-open-desktop');
+            }
+            explorerToggle.classList.add('active');
+        }
+
+        function closeSidebar() {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+                sidebar.classList.remove('sidebar-open-mobile');
+                mobileOverlay.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore body scroll
+            } else {
+                sidebar.classList.remove('sidebar-open-desktop'); // Remove desktop class if mistakenly applied
+            }
+            sidebar.classList.add('sidebar-closed');
+            explorerToggle.classList.remove('active');
+        }
+
+        // Toggle sidebar visibility based on current state
+        explorerToggle.addEventListener('click', () => {
+            const isOpen = sidebar.classList.contains('sidebar-open-desktop') || sidebar.classList.contains('sidebar-open-mobile');
+            if (isOpen) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+
+        // Close sidebar when clicking outside on mobile
+        mobileOverlay.addEventListener('click', closeSidebar);
+
+
+        // Handle initial sidebar state based on screen size
+        function setInitialSidebarState() {
+            const isMobile = window.innerWidth < 768; // Tailwind's 'md' breakpoint is 768px
+
+            // Remove all existing state classes first to prevent conflicts
+            sidebar.classList.remove('sidebar-open-desktop', 'sidebar-open-mobile', 'sidebar-closed');
+            explorerToggle.classList.remove('active');
+            mobileOverlay.classList.add('hidden');
+            document.body.style.overflow = ''; // Ensure body scroll is normal
+
+            if (isMobile) {
+                // On mobile, sidebar should start closed
+                sidebar.classList.add('sidebar-closed');
+            } else {
+                // On desktop, sidebar should start open
+                sidebar.classList.add('sidebar-open-desktop');
+                explorerToggle.classList.add('active');
+            }
+        }
+
+        // --- Intersection Observer for Scroll-based Navigation ---
+        // Get all sections AFTER they have been populated with content
+        let sections = []; // Will be populated on DOMContentLoaded
+        const observerOptions = {
+            root: sectionsWrapper, // Observe within the sections-wrapper
+            rootMargin: '0px',
+            threshold: 0.5 // Trigger when 50% of the section is visible
+        };
+
+        const sectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const sectionTabName = entry.target.dataset.tabName;
+                    if (sectionTabName && activeTab !== sectionTabName) {
+                        updateActiveStates(sectionTabName);
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // --- End Intersection Observer ---
+
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            setInitialSidebarState(); // Set sidebar state on load
+            renderEditorTabs(); // Render initial tabs (UI)
+            populateAllSections(); // Populate content for all sections
+            updateActiveStates('home.js'); // Set initial active tab and highlight
+
+            // Now that sections are populated, get them and observe
+            sections = document.querySelectorAll('.portfolio-section');
+            sections.forEach(section => {
+                sectionObserver.observe(section);
+            });
+        });
+
+        // Listen for window resize to adjust sidebar state
+        window.addEventListener('resize', setInitialSidebarState);
+    </script>
+</body>
+</html>
+
