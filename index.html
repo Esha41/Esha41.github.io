@@ -15,10 +15,10 @@
         html, body {
             height: 100%; /* Make sure html and body take full viewport height */
             margin: 0;
-            overflow: hidden; /* Prevent native browser scrollbars on html/body */
             font-family: 'Inter', sans-serif;
             background-color: #1e1e1e; /* Dark background */
             color: #ffffff;
+            /* Removed overflow: hidden for mobile scroll */
         }
         #root { /* A common practice to have a root div to manage the app */
             height: 100%;
@@ -176,16 +176,29 @@
 
         .portfolio-section {
             scroll-snap-align: start; /* Snap each section to the start of the scroll container */
-            min-height: calc(100vh - 3.5rem - 2.5rem); /* Full viewport height minus top bar (py-1.5 = 24px + 6px padding on either side = 30px = 2.5rem) and status bar (py-1.5 = 2.5rem) */
+            min-height: calc(100vh - 3.5rem - 2.5rem);
             display: flex;
             flex-direction: column;
-            justify-content: flex-start; /* Center content vertically within the section */
-            align-items: flex-start; /* Center content horizontally */
-            width: 100%; /* Take full width */
-            box-sizing: border-box; /* Include padding in width/height */
+            justify-content: flex-start;
+            align-items: flex-start;
+            width: 100%;
+            box-sizing: border-box;
             padding-top: 1rem;
-            padding-left: 5rem; /* Adjust padding for sections */
-            padding-right: 5rem; 
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        @media (min-width: 640px) {
+            .portfolio-section {
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
+        }
+        @media (min-width: 1024px) {
+            .portfolio-section {
+                padding-left: 5rem;
+                padding-right: 5rem;
+            }
+        }
         }
         /* Adjust min-height for different screen sizes, if needed (can be refined based on actual content and desired feel) */
         @media (min-width: 768px) {
@@ -484,7 +497,7 @@
                                 <img 
                                     src="${resumeData.profileImage}" 
                                     alt="${resumeData.name}" 
-                                    class="w-55 h-80 sm:w-63 sm:h-82 rounded-lg shadow-lg mt-4"
+                                    class="w-40 h-56 sm:w-56 sm:h-72 md:w-64 md:h-80 rounded-lg shadow-lg mt-4 object-cover"
                                 />
                             </div>
                         </div>
@@ -629,10 +642,7 @@
         function switchTab(tabName, sectionId) {
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
-                sectionsWrapper.scrollTo({
-                    top: targetSection.offsetTop,
-                    behavior: 'smooth'
-                });
+                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
          //   updateActiveStates(tabName);
 
@@ -702,13 +712,12 @@
             sidebar.classList.remove('sidebar-open-desktop', 'sidebar-open-mobile', 'sidebar-closed');
             explorerToggle.classList.remove('active');
             mobileOverlay.classList.add('hidden');
-            document.body.style.overflow = ''; // Ensure body scroll is normal
+            document.body.style.overflow = '';
 
             if (isMobile) {
-                // On mobile, sidebar should start closed
                 sidebar.classList.add('sidebar-closed');
+                document.body.style.overflow = '';
             } else {
-                // On desktop, sidebar should start open
                 sidebar.classList.add('sidebar-open-desktop');
                 explorerToggle.classList.add('active');
             }
